@@ -4,4 +4,8 @@ package-lock.json
 out/
 .cache/
 compile_commands.json
-/prebuilds/
+/prebuilds/*
+!/prebuilds/linux-x64/
+/prebuilds/linux-x64/*
+!/prebuilds/linux-x64/isolated-vm.abi137.musl.node
+/.yarn/install-state.gz
