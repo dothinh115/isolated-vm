@@ -8,4 +8,7 @@ compile_commands.json
 !/prebuilds/linux-x64/
 /prebuilds/linux-x64/*
 !/prebuilds/linux-x64/isolated-vm.abi137.musl.node
+!/prebuilds/linux-arm64/
+/prebuilds/linux-arm64/*
+!/prebuilds/linux-arm64/isolated-vm.abi137.musl.node
 /.yarn/install-state.gz
