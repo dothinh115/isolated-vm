@@ -118,9 +118,9 @@ struct timer_thread_t {
 	}
 
 	void run_next(std::unique_lock<std::mutex>& lock) {
-		auto data = queue.top();
-		queue.pop();
-		{
+		while (!queue.empty()) {
+			auto data = queue.top();
+			queue.pop();
 			if (data->is_alive) {
 				if (data->is_paused()) {
 					data->threadless_self = std::move(data);
@@ -140,8 +140,8 @@ struct timer_thread_t {
 			} else {
 				data.reset();
 			}
+			if (queue.empty() || queue.top()->timeout > next_timeout) return;
 		}
-		maybe_run_next(lock);
 	}
 
 	// Requires lock
