@@ -56,5 +56,27 @@ int main() {
 		second_cv.notify_one();
 	}};
 	std::unique_lock<std::mutex> second_lock{second_mutex};
-	return second_cv.wait_for(second_lock, 5s, [&] { return second_finished; }) ? 0 : 3;
+	if (!second_cv.wait_for(second_lock, 5s, [&] { return second_finished; })) return 3;
+	second_lock.unlock();
+
+	std::atomic<int> chained_fired{0};
+	for (int i = 0; i < 12000; ++i) {
+		ivm::timer_t::wait_detached(300, [&chained_fired](void* next) {
+			++chained_fired;
+			ivm::timer_t::chain(next);
+		});
+	}
+	std::this_thread::sleep_for(3s);
+	if (chained_fired.load() != 12000) return 4;
+
+	std::mutex third_mutex;
+	std::condition_variable third_cv;
+	bool third_finished = false;
+	ivm::timer_t third{1, [&](void*) {
+		std::lock_guard<std::mutex> third_lock{third_mutex};
+		third_finished = true;
+		third_cv.notify_one();
+	}};
+	std::unique_lock<std::mutex> third_lock{third_mutex};
+	return third_cv.wait_for(third_lock, 5s, [&] { return third_finished; }) ? 0 : 5;
 }
