@@ -112,12 +112,16 @@ struct timer_thread_t {
 	}
 
 	void maybe_run_next(std::unique_lock<std::mutex>& lock) {
+		if (is_draining) {
+			return;
+		}
 		if (!queue.empty() && queue.top()->timeout <= next_timeout) {
 			run_next(lock);
 		}
 	}
 
 	void run_next(std::unique_lock<std::mutex>& lock) {
+		is_draining = true;
 		while (!queue.empty()) {
 			auto data = queue.top();
 			queue.pop();
@@ -135,13 +139,15 @@ struct timer_thread_t {
 					if (data->is_dtor_waiting) {
 						shared_state->cv.notify_all();
 					}
-					return;
 				}
 			} else {
 				data.reset();
 			}
-			if (queue.empty() || queue.top()->timeout > next_timeout) return;
+			if (queue.empty() || queue.top()->timeout > next_timeout) {
+				break;
+			}
 		}
+		is_draining = false;
 	}
 
 	// Requires lock
@@ -165,6 +171,7 @@ struct timer_thread_t {
 		timer_data_t::cmp
 	> queue;
 	std::chrono::steady_clock::time_point next_timeout;
+	bool is_draining = false;
 	std::shared_ptr<shared_state_t> shared_state;
 };
 

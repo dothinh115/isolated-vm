@@ -1,6 +1,6 @@
 {
   "name": "@enfyra/isolated-vm",
-  "version": "7.0.3",
+  "version": "7.0.4",
   "description": "Access to multiple isolates",
   "main": "isolated-vm.js",
   "types": "isolated-vm.d.ts",
