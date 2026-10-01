@@ -8,3 +8,5 @@ build/
 AGENTS.md
 ISSUE_TEMPLATE.md
 native-example/README.md
+package-lock.json
+/docs/release-notes-v7.0.6.md
