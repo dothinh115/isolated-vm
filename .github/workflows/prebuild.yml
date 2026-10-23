@@ -17,20 +17,17 @@ jobs:
       - name: Use nodejs
         uses: actions/setup-node@v6
         with:
-          node-version: latest
+          node-version: 24.22.1
       - name: Add msbuild to PATH
         if: matrix.os == 'windows-latest'
         uses: microsoft/setup-msbuild@v2
-      - name: Install node-gyp
-        if: matrix.os == 'windows-latest'
-        run: |
-          npm install --global node-gyp@latest
       - name: Dependencies
         run: |
-          npm install --ignore-scripts
+          corepack enable
+          corepack prepare yarn@4.17.0 --activate
+          yarn install --immutable --mode=skip-build
       - name: Build
-        run: |
-          npm run prebuild
+        run: yarn prebuild
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
@@ -49,7 +46,7 @@ jobs:
       - name: Use nodejs
         uses: actions/setup-node@v6
         with:
-          node-version: latest
+          node-version: 24.22.1
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
@@ -74,7 +71,7 @@ jobs:
       - name: Use nodejs
         uses: actions/setup-node@v6
         with:
-          node-version: latest
+          node-version: 24.22.1
       - name: Download all prebuild artifacts
         uses: actions/download-artifact@v8
         with:
@@ -82,11 +79,13 @@ jobs:
           merge-multiple: true
           path: prebuilds
       - name: Verify bundled prebuilds
-        run: |
-          find prebuilds -type f -name '*.node' | sort
+        run: node scripts/verify-prebuilds.js
       - name: Pack npm tarball
         run: |
-          npm pack
+          corepack enable
+          corepack prepare yarn@4.17.0 --activate
+          yarn install --immutable --mode=skip-build
+          yarn pack --out enfyra-isolated-vm.tgz
       - name: Upload npm tarball
         uses: actions/upload-artifact@v7
         with:

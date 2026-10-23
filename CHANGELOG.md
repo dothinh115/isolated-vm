@@ -1,5 +1,18 @@
 # Changelog
 
+## v7.0.7
+
+### Features
+
+- Added Node 26 Linux musl prebuilds for `linux-x64` and `linux-arm64`, plus a Node 26 macOS ARM64 prebuild.
+
+### Bug Fixes
+
+- Updated `scripts/run-prebuild.js` to build patched Node 24 and Node 26 targets without deleting prebuilds for other platforms.
+- Added `scripts/verify-prebuilds.js` as a packaging gate for both Linux architectures and Node ABIs.
+- Improved `test.js` with sequential per-test deadlines and explicit test selection.
+- Updated Docker and CI builds to use pinned Yarn without depending on Corepack being bundled in Node 26.
+
 ## v7.0.6
 
 ### Bug Fixes

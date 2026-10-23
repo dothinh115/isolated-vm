@@ -2,7 +2,11 @@
 let fs = require('fs');
 let spawn = require('child_process').spawn;
 let path = require('path');
+const testDirectory = path.join(__dirname, 'tests');
 
+const timeoutMs = Number(process.env.TEST_TIMEOUT_MS || 60000);
+if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new Error('TEST_TIMEOUT_MS must be a positive integer');
+const selected = new Set(process.argv.slice(2));
 let ret = 0;
 let passCount = 0, failCount = 0;
 function runTest(test, cb) {
@@ -15,7 +19,7 @@ function runTest(test, cb) {
 
 	// Get extra args
 	let args = [ '--no-node-snapshot' ];
-	let testPath = path.join('tests', test);
+	let testPath = path.join(testDirectory, test);
 	let content = fs.readFileSync(testPath, 'utf8');
 	let match = /node-args: *(.+)/.exec(content);
 	if (match) {
@@ -24,7 +28,7 @@ function runTest(test, cb) {
 	args.push(testPath);
 
 	// Launch process
-	let proc = spawn(process.execPath, args, { env });
+	let proc = spawn(process.execPath, args, { env, cwd: __dirname });
 	proc.stdout.setEncoding('utf8');
 	proc.stderr.setEncoding('utf8');
 
@@ -37,9 +41,16 @@ function runTest(test, cb) {
 	});
 	proc.stdin.end();
 
-	// Wait for completion
+	let timedOut = false;
+	const timer = setTimeout(() => {
+		timedOut = true;
+		proc.kill('SIGKILL');
+	}, timeoutMs);
 	process.stderr.write(`${test}: `);
-	proc.on('exit', function(code, signal) {
+	proc.on('error', error => { stderr += String(error); });
+	proc.on('close', function(code, signal) {
+		clearTimeout(timer);
+		if (timedOut) stderr += `Test exceeded ${timeoutMs}ms`;
 		if (stdout !== 'pass\n' || stderr !== '') {
 			++failCount;
 			ret = 1;
@@ -62,11 +73,19 @@ function runTest(test, cb) {
 }
 
 let cb = function() {
+	if (passCount + failCount === 0) {
+		console.error('No tests matched the selection');
+		process.exit(1);
+	}
 	console.log('\nCompleted: '+ passCount+ ' passed, '+ failCount+ ' failed.');
 	process.exit(ret);
 };
-fs.readdirSync('./tests').sort().reverse().forEach(function(file) {
-	if (/\.js$/.test(file)) {
+const files = fs.readdirSync(testDirectory).filter(file => /\.js$/.test(file));
+for (const file of selected) {
+	if (!files.includes(file)) throw new Error(`Unknown test: ${file}`);
+}
+files.sort().reverse().forEach(function(file) {
+	if (/\.js$/.test(file) && (!selected.size || selected.has(file))) {
 		cb = new function(cb) {
 			return function(err) {
 				if (err) return cb(err);
